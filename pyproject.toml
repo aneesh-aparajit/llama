@@ -7,6 +7,15 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+transformers = "^4.36.2"
+pandas = "^2.1.4"
+peft = "^0.7.1"
+trl = "^0.7.10"
+sentencepiece = "^0.1.99"
+python-dotenv = "^1.0.0"
+dask = "^2024.1.0"
+googletrans = "^3.0.0"
+tqdm = "^4.66.1"
 
 
 [build-system]
