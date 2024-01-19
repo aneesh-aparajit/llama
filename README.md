@@ -1,3 +1,1 @@
-# Llama
-
-## Data Setup
+# MalayaLLaMA
