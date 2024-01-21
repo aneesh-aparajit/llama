@@ -4,8 +4,10 @@ import sentencepiece as spm
 
 class SentencePieceTrainer:
     def __init__(self) -> None:
-        self.corpus_path = "../data/CulturaX/text/malayalam_pretraining_corpus.txt"
-        self.output_dir = "../checkpoints/malayalam-10k/"
+        self.corpus_path = (
+            "../../data/CulturaX/text/malayalam_pretraining_corpus_mini.txt"
+        )
+        self.output_dir = "../../checkpoints/malayalam-10k-mini/"
         self.model_prefix = "malayalam-10k"
         self.character_coverage = 1.0
         self.model_type = "bpe"
