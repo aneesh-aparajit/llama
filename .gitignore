@@ -165,3 +165,7 @@ cython_debug/
 *.part
 *.txt
 .DS_Store
+checkpoints/
+data/
+*.json
+
