@@ -163,5 +163,5 @@ cython_debug/
 *.parquet
 *.csv
 *.part
-./data/
+*.txt
 .DS_Store
