@@ -169,3 +169,6 @@ checkpoints/
 data/
 *.json
 
+merged_tokenizer_hf
+merged_tokenizer_sp
+.ruff_cache/
