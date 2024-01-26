@@ -20,7 +20,7 @@ class SentencePieceTrainer:
         self.model_type = model_type
 
     def train(self) -> None:
-        output_path = os.path.join(self.src_dir, f"{self.model_prefix}.model")
+        output_path = os.path.join(self.dst_dir, f"{self.model_prefix}.model")
 
         spm.SentencePieceTrainer.train(
             input=self.src_file,
@@ -28,15 +28,15 @@ class SentencePieceTrainer:
             vocab_size=self.vocab_size,
             character_coverage=1.0,
             model_type="bpe",
-            split_digits=True,
-            allow_whitespace_only_pieces=True,
-            byte_fallback=True,
-            normalization_rule_name="identity",
-            self_test_sample_size=0,
-            input_format="text",
-            unk_surface=r" \342\201\207 ",
-            hard_vocab_limit=True,
-            num_threads=2 * os.cpu_count(),
+            # split_digits=True,
+            # allow_whitespace_only_pieces=True,
+            # byte_fallback=True,
+            # normalization_rule_name="identity",
+            # self_test_sample_size=0,
+            # input_format="text",
+            # unk_surface=r" \342\201\207 ",
+            # hard_vocab_limit=True,
+            # num_threads=os.cpu_count() * 2,
         )
 
         os.rename(
@@ -51,4 +51,9 @@ class SentencePieceTrainer:
         return output_path
 
     def __call__(self) -> None:
-        pass
+        self.train()
+
+
+if __name__ == '__main__':
+    trainer = SentencePieceTrainer(src_file="../../data/corpus/culturaX.txt", dst_dir="../../checkpoints/malayalam-20k")
+    trainer()

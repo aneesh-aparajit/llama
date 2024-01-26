@@ -1,6 +1,7 @@
 import os
 import logging
 from argparse import ArgumentParser
+import pandas as pd
 from tqdm import tqdm
 from datasets import load_dataset
 import dotenv
@@ -29,10 +30,12 @@ class CorpusGenerator:
         try:
             logger.info("Starting downloading of data...")
             raw_dataset = load_dataset(dataset_path, "ml", token=hf_token)["train"]
+            df = pd.DataFrame(raw_dataset).sample(1_200_000)
+            logger.info(f"Shape: {df.shape}")
             logger.info("Data downloaded...")
             with open(os.path.join(self.dst_dir, out_file_name), "w") as f:
-                for _, row in tqdm(enumerate(raw_dataset)):
-                    f.write(str(row[tgt_col]))
+                for _, row in tqdm(df.iterrows(), total=len(raw_dataset)):
+                    f.write(str(row[tgt_col]) + "\n")
         except Exception as e:
             logger.error(e)
         return
