@@ -17,6 +17,7 @@ dask = "^2024.1.0"
 googletrans = "^3.0.0"
 tqdm = "^4.66.1"
 google = "^3.0.0"
+scikit-learn = "^1.4.0"
 
 
 [build-system]
