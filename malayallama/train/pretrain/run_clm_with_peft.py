@@ -147,3 +147,4 @@ def fault_tolerance_data_collator(features: List) -> Dict[str, Any]:
                     else:
                         batch[k] = torch.tensor([features[0][k]] * len(features))
     return batch
+
