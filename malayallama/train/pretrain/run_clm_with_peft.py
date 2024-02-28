@@ -357,6 +357,7 @@ class MyTrainingArguments(TrainingArguments):
     modules_to_save: Optional[str] = field(default=None)
     debug_mode: Optional[bool] = field(default=False)
     peft_path: Optional[str] = field(default=None)
+    load_in_kbits: Optional[int] = field(default=32)
 
 
 logger = logging.getLogger(__name__)
