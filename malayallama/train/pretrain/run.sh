@@ -12,7 +12,7 @@ dataset_dir="../../../data/CulturaX/text/"
 data_cache=temp_data_cache_dir
 per_device_train_batch_size=1
 per_device_eval_batch_size=1
-gradient_accumulation_steps=8
+gradient_accumulation_steps=2
 output_dir=output_dir
 
 deepspeed_config_file=ds_zero2_no_offload.json
@@ -23,6 +23,7 @@ python run_clm_with_peft.py \
     --dataset_dir ${dataset_dir} \
     --data_cache_dir ${data_cache} \
     --validation_split_percentage 0.001 \
+    --do_train \
     --num_train_epochs 1 \
     --lr_scheduler_type cosine \
     --learning_rate ${lr} \
@@ -32,7 +33,7 @@ python run_clm_with_peft.py \
     --logging_steps 10 \
     --save_strategy steps \
     --save_total_limit 3 \
-    --save_steps 200 \
+    --save_steps 50 \
     --gradient_accumulation_steps ${gradient_accumulation_steps} \
     --preprocessing_num_workers 8 \
     --block_size 512 \
@@ -43,4 +44,5 @@ python run_clm_with_peft.py \
     --trainable ${lora_trainable} \
     --modules_to_save ${modules_to_save} \
     --lora_dropout ${lora_dropout} \
-    --gradient_checkpointing
+    --gradient_checkpointing \
+    --fp16
