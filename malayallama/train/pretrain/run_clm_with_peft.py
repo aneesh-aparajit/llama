@@ -49,22 +49,33 @@ from transformers import (
     is_torch_tpu_available,
     set_seed,
 )
+
 # from transformers.testing_utils import CaptureLogger
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import send_example_telemetry
 from transformers.utils.versions import require_version
 
 from sklearn.metrics import accuracy_score
-from peft import LoraConfig, TaskType, get_peft_model, PeftModel, get_peft_model_state_dict
+from peft import (
+    LoraConfig,
+    TaskType,
+    get_peft_model,
+    PeftModel,
+    get_peft_model_state_dict,
+)
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
 
 class SavePeftModelCallback(transformers.TrainerCallback):
     def save_model(self, args, state, kwargs):
         if state.best_model_checkpoint is not None:
-            checkpoint_folder = os.path.join(state.best_model_checkpoint, "pt_lora_model")
+            checkpoint_folder = os.path.join(
+                state.best_model_checkpoint, "pt_lora_model"
+            )
         else:
-            checkpoint_folder = os.path.join(args.output_dir, f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}")
+            checkpoint_folder = os.path.join(
+                args.output_dir, f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}"
+            )
 
         peft_model_path = os.path.join(checkpoint_folder, "pt_lora_model")
         kwargs["model"].save_pretrained(peft_model_path)
@@ -81,11 +92,16 @@ class SavePeftModelCallback(transformers.TrainerCallback):
 
 
 def accuracy(predictions, references, normalize=True, sample_weight=None):
-        return {
-            "accuracy": float(
-                accuracy_score(references, predictions, normalize=normalize, sample_weight=sample_weight)
+    return {
+        "accuracy": float(
+            accuracy_score(
+                references,
+                predictions,
+                normalize=normalize,
+                sample_weight=sample_weight,
             )
-        }
+        )
+    }
 
 
 def compute_metrics(eval_preds):
@@ -115,31 +131,47 @@ def fault_tolerance_data_collator(features: List) -> Dict[str, Any]:
     # Ensure that tensor is created with the correct type
     # (it should be automatically the case, but let's make sure of it.)
     if "label" in first and first["label"] is not None:
-        label = first["label"].item() if isinstance(first["label"], torch.Tensor) else first["label"]
+        label = (
+            first["label"].item()
+            if isinstance(first["label"], torch.Tensor)
+            else first["label"]
+        )
         dtype = torch.long if isinstance(label, int) else torch.float
         batch["labels"] = torch.tensor([f["label"] for f in features], dtype=dtype)
     elif "label_ids" in first and first["label_ids"] is not None:
         if isinstance(first["label_ids"], torch.Tensor):
             batch["labels"] = torch.stack([f["label_ids"] for f in features])
         else:
-            dtype = torch.long if isinstance(first["label_ids"][0], int) else torch.float
-            batch["labels"] = torch.tensor([f["label_ids"] for f in features], dtype=dtype)
+            dtype = (
+                torch.long if isinstance(first["label_ids"][0], int) else torch.float
+            )
+            batch["labels"] = torch.tensor(
+                [f["label_ids"] for f in features], dtype=dtype
+            )
 
     # Handling of all other possible keys.
     # Again, we will use the first element to figure out which key/values are not None for this model.
 
     try:
         for k, v in first.items():
-            if k not in ("label", "label_ids") and v is not None and not isinstance(v, str):
+            if (
+                k not in ("label", "label_ids")
+                and v is not None
+                and not isinstance(v, str)
+            ):
                 if isinstance(v, torch.Tensor):
                     batch[k] = torch.stack([f[k] for f in features])
                 elif isinstance(v, np.ndarray):
                     batch[k] = torch.tensor(np.stack([f[k] for f in features]))
                 else:
                     batch[k] = torch.tensor([f[k] for f in features])
-    except ValueError: # quick fix by simply take the first example
+    except ValueError:  # quick fix by simply take the first example
         for k, v in first.items():
-            if k not in ("label", "label_ids") and v is not None and not isinstance(v, str):
+            if (
+                k not in ("label", "label_ids")
+                and v is not None
+                and not isinstance(v, str)
+            ):
                 if isinstance(v, torch.Tensor):
                     batch[k] = torch.stack([features[0][k]] * len(features))
                 elif isinstance(v, np.ndarray):
@@ -178,7 +210,10 @@ class ModelArguments:
     )
     model_type: Optional[str] = field(
         default=None,
-        metadata={"help": "If training from scratch, pass a model type from the list: " + ", ".join(MODEL_TYPES)},
+        metadata={
+            "help": "If training from scratch, pass a model type from the list: "
+            + ", ".join(MODEL_TYPES)
+        },
     )
     config_overrides: Optional[str] = field(
         default=None,
@@ -190,22 +225,34 @@ class ModelArguments:
         },
     )
     config_name: Optional[str] = field(
-        default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
+        default=None,
+        metadata={
+            "help": "Pretrained config name or path if not the same as model_name"
+        },
     )
     tokenizer_name: Optional[str] = field(
-        default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
+        default=None,
+        metadata={
+            "help": "Pretrained tokenizer name or path if not the same as model_name"
+        },
     )
     cache_dir: Optional[str] = field(
         default=None,
-        metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
+        metadata={
+            "help": "Where do you want to store the pretrained models downloaded from huggingface.co"
+        },
     )
     use_fast_tokenizer: bool = field(
         default=True,
-        metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
+        metadata={
+            "help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."
+        },
     )
     model_revision: str = field(
         default="main",
-        metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
+        metadata={
+            "help": "The specific model version to use (can be a branch name, tag name or commit id)."
+        },
     )
     use_auth_token: bool = field(
         default=False,
@@ -228,7 +275,9 @@ class ModelArguments:
     )
 
     def __post_init__(self):
-        if self.config_overrides is not None and (self.config_name is not None or self.model_name_or_path is not None):
+        if self.config_overrides is not None and (
+            self.config_name is not None or self.model_name_or_path is not None
+        ):
             raise ValueError(
                 "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
             )
@@ -241,15 +290,23 @@ class DataTrainingArguments:
     """
 
     dataset_dir: Optional[str] = field(
-        default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
+        default=None,
+        metadata={"help": "The name of the dataset to use (via the datasets library)."},
     )
     dataset_config_name: Optional[str] = field(
-        default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
+        default=None,
+        metadata={
+            "help": "The configuration name of the dataset to use (via the datasets library)."
+        },
     )
-    train_file: Optional[str] = field(default=None, metadata={"help": "The input training data file (a text file)."})
+    train_file: Optional[str] = field(
+        default=None, metadata={"help": "The input training data file (a text file)."}
+    )
     validation_file: Optional[str] = field(
         default=None,
-        metadata={"help": "An optional input evaluation data file to evaluate the perplexity on (a text file)."},
+        metadata={
+            "help": "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+        },
     )
     max_train_samples: Optional[int] = field(
         default=None,
@@ -281,7 +338,8 @@ class DataTrainingArguments:
         },
     )
     overwrite_cache: bool = field(
-        default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
+        default=False,
+        metadata={"help": "Overwrite the cached training and evaluation sets"},
     )
     validation_split_percentage: Optional[float] = field(
         default=0.05,
@@ -294,36 +352,44 @@ class DataTrainingArguments:
         metadata={"help": "The number of processes to use for the preprocessing."},
     )
     keep_linebreaks: bool = field(
-        default=True, metadata={"help": "Whether to keep line breaks when using TXT files or not."}
+        default=True,
+        metadata={"help": "Whether to keep line breaks when using TXT files or not."},
     )
-    data_cache_dir: Optional[str] = field(default="./", metadata={"help": "The datasets processed stored"})
+    data_cache_dir: Optional[str] = field(
+        default="./", metadata={"help": "The datasets processed stored"}
+    )
 
     def __post_init__(self):
         if self.streaming:
-            require_version("datasets>=2.0.0", "The streaming feature requires `datasets>=2.0.0`")
+            require_version(
+                "datasets>=2.0.0", "The streaming feature requires `datasets>=2.0.0`"
+            )
 
 
 @dataclass
 class MyTrainingArguments(TrainingArguments):
-    trainable : Optional[str] = field(default="q_proj,v_proj")
-    lora_rank : Optional[int] = field(default=8)
-    lora_dropout : Optional[float] = field(default=0.1)
-    lora_alpha : Optional[float] = field(default=32.)
-    modules_to_save : Optional[str] = field(default=None)
-    debug_mode : Optional[bool] = field(default=False)
-    peft_path : Optional[str] = field(default=None)
+    trainable: Optional[str] = field(default="q_proj,v_proj")
+    lora_rank: Optional[int] = field(default=8)
+    lora_dropout: Optional[float] = field(default=0.1)
+    lora_alpha: Optional[float] = field(default=32.0)
+    modules_to_save: Optional[str] = field(default=None)
+    debug_mode: Optional[bool] = field(default=False)
+    peft_path: Optional[str] = field(default=None)
 
 
 logger = logging.getLogger(__name__)
 
 
 def main():
-
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, MyTrainingArguments))
+    parser = HfArgumentParser(
+        (ModelArguments, DataTrainingArguments, MyTrainingArguments)
+    )
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        model_args, data_args, training_args = parser.parse_json_file(
+            json_file=os.path.abspath(sys.argv[1])
+        )
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
@@ -332,10 +398,12 @@ def main():
     send_example_telemetry("run_clm", model_args, data_args)
 
     # Setup logging
-    logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",datefmt="%m/%d/%Y %H:%M:%S",
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,  # if training_args.local_rank in [-1, 0] else logging.WARN,
-        handlers=[logging.StreamHandler(sys.stdout)],)
-
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
 
     if training_args.should_log:
         # The default of training_args.log_level is passive, so we set log level at info here to have that default.
@@ -357,14 +425,20 @@ def main():
 
     # Detecting last checkpoint.
     last_checkpoint = None
-    if os.path.isdir(training_args.output_dir) and training_args.do_train and not training_args.overwrite_output_dir:
+    if (
+        os.path.isdir(training_args.output_dir)
+        and training_args.do_train
+        and not training_args.overwrite_output_dir
+    ):
         last_checkpoint = get_last_checkpoint(training_args.output_dir)
         if last_checkpoint is None and len(os.listdir(training_args.output_dir)) > 0:
             raise ValueError(
                 f"Output directory ({training_args.output_dir}) already exists and is not empty. "
                 "Use --overwrite_output_dir to overcome."
             )
-        elif last_checkpoint is not None and training_args.resume_from_checkpoint is None:
+        elif (
+            last_checkpoint is not None and training_args.resume_from_checkpoint is None
+        ):
             logger.info(
                 f"Checkpoint detected, resuming training at {last_checkpoint}. To avoid this behavior, change "
                 "the `--output_dir` or add `--overwrite_output_dir` to train from scratch."
@@ -381,7 +455,9 @@ def main():
     if model_args.config_name:
         config = AutoConfig.from_pretrained(model_args.config_name, **config_kwargs)
     elif model_args.model_name_or_path:
-        config = AutoConfig.from_pretrained(model_args.model_name_or_path, **config_kwargs)
+        config = AutoConfig.from_pretrained(
+            model_args.model_name_or_path, **config_kwargs
+        )
     else:
         config = CONFIG_MAPPING[model_args.model_type]()
         logger.warning("You are instantiating a new config instance from scratch.")
@@ -397,9 +473,13 @@ def main():
         "use_auth_token": True if model_args.use_auth_token else None,
     }
     if model_args.tokenizer_name:
-        tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name, **tokenizer_kwargs)
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_args.tokenizer_name, **tokenizer_kwargs
+        )
     elif model_args.tokenizer_name_or_path:
-        tokenizer = LlamaTokenizer.from_pretrained(model_args.tokenizer_name_or_path, **tokenizer_kwargs)
+        tokenizer = LlamaTokenizer.from_pretrained(
+            model_args.tokenizer_name_or_path, **tokenizer_kwargs
+        )
     else:
         raise ValueError(
             "You are instantiating a new tokenizer from scratch. This is not supported by this script."
@@ -409,7 +489,9 @@ def main():
     # Preprocessing the datasets.
     # First we tokenize all the texts.
     # since this will be pickled to avoid _LazyModule error in Hasher force logger loading before tokenize_function
-    tok_logger = transformers.utils.logging.get_logger("transformers.tokenization_utils_base")
+    tok_logger = transformers.utils.logging.get_logger(
+        "transformers.tokenization_utils_base"
+    )
 
     def tokenize_function(examples):
         # with CaptureLogger(tok_logger) as cl:
@@ -421,6 +503,7 @@ def main():
         #         " before being passed to the model."
         #     )
         return output
+
     if data_args.block_size is None:
         block_size = tokenizer.model_max_length
         if block_size > 1024:
@@ -454,6 +537,7 @@ def main():
         }
         result["labels"] = result["input_ids"].copy()
         return result
+
     with training_args.main_process_first(desc="dataset map tokenization and grouping"):
         lm_datasets = []
         path = Path(data_args.dataset_dir)
@@ -462,16 +546,23 @@ def main():
             files = [files[0]]
         for idx, file in enumerate(files):
             data_file = os.path.join(path, file)
-            filename = ''.join(file.split(".")[:-1])
+            filename = "".join(file.split(".")[:-1])
             cache_path = os.path.join(data_args.data_cache_dir, filename)
             os.makedirs(cache_path, exist_ok=True)
             try:
-                processed_dataset = datasets.load_from_disk(cache_path, keep_in_memory=False)
-                logger.info(f'training datasets-{filename} has been loaded from disk')
+                processed_dataset = datasets.load_from_disk(
+                    cache_path, keep_in_memory=False
+                )
+                logger.info(f"training datasets-{filename} has been loaded from disk")
             except Exception:
-                cache_dir = os.path.join(data_args.data_cache_dir, filename+"_text")
+                cache_dir = os.path.join(data_args.data_cache_dir, filename + "_text")
                 os.makedirs(cache_dir, exist_ok=True)
-                raw_dataset = load_dataset("text", data_files=data_file, cache_dir=cache_dir, keep_in_memory=False)
+                raw_dataset = load_dataset(
+                    "text",
+                    data_files=data_file,
+                    cache_dir=cache_dir,
+                    keep_in_memory=False,
+                )
                 logger.info(f"{file} has been loaded")
                 tokenized_dataset = raw_dataset.map(
                     tokenize_function,
@@ -480,7 +571,10 @@ def main():
                     remove_columns="text",
                     load_from_cache_file=True,
                     keep_in_memory=False,
-                    cache_file_names = {k: os.path.join(cache_dir, 'tokenized.arrow') for k in raw_dataset},
+                    cache_file_names={
+                        k: os.path.join(cache_dir, "tokenized.arrow")
+                        for k in raw_dataset
+                    },
                     desc="Running tokenizer on dataset",
                 )
                 grouped_datasets = tokenized_dataset.map(
@@ -489,27 +583,37 @@ def main():
                     num_proc=data_args.preprocessing_num_workers,
                     load_from_cache_file=True,
                     keep_in_memory=False,
-                    cache_file_names = {k: os.path.join(cache_dir, 'grouped.arrow') for k in tokenized_dataset},
+                    cache_file_names={
+                        k: os.path.join(cache_dir, "grouped.arrow")
+                        for k in tokenized_dataset
+                    },
                     desc=f"Grouping texts in chunks of {block_size}",
                 )
                 processed_dataset = grouped_datasets
                 processed_dataset.save_to_disk(cache_path)
             if idx == 0:
-                lm_datasets = processed_dataset['train']
+                lm_datasets = processed_dataset["train"]
             else:
-                assert lm_datasets.features.type == processed_dataset["train"].features.type
-                lm_datasets = concatenate_datasets([lm_datasets, processed_dataset["train"]])
+                assert (
+                    lm_datasets.features.type
+                    == processed_dataset["train"].features.type
+                )
+                lm_datasets = concatenate_datasets(
+                    [lm_datasets, processed_dataset["train"]]
+                )
 
-        lm_datasets = lm_datasets.train_test_split(test_size = data_args.validation_split_percentage)
+        lm_datasets = lm_datasets.train_test_split(
+            test_size=data_args.validation_split_percentage
+        )
 
     if training_args.do_train:
-        train_dataset = lm_datasets['train']
+        train_dataset = lm_datasets["train"]
         if data_args.max_train_samples is not None:
             max_train_samples = min(len(train_dataset), data_args.max_train_samples)
             train_dataset = train_dataset.select(range(max_train_samples))
         logger.info(f"Num train_samples  {len(train_dataset)}")
         logger.info("training example:")
-        logger.info(tokenizer.decode(train_dataset[0]['input_ids']))
+        logger.info(tokenizer.decode(train_dataset[0]["input_ids"]))
     if training_args.do_eval:
         eval_dataset = lm_datasets["test"]
         if data_args.max_eval_samples is not None:
@@ -517,9 +621,7 @@ def main():
             eval_dataset = eval_dataset.select(range(max_eval_samples))
         logger.info(f"Num eval_samples  {len(eval_dataset)}")
         logger.info("training example:")
-        logger.info(tokenizer.decode(eval_dataset[0]['input_ids']))
-
-
+        logger.info(tokenizer.decode(eval_dataset[0]["input_ids"]))
 
     if model_args.model_name_or_path:
         torch_dtype = (
@@ -535,12 +637,14 @@ def main():
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
             torch_dtype=torch_dtype,
-            low_cpu_mem_usage=True
+            low_cpu_mem_usage=True,
         )
     else:
         model = AutoModelForCausalLM.from_config(config)
         n_params = sum({p.data_ptr(): p.numel() for p in model.parameters()}.values())
-        logger.info(f"Training new model from scratch - Total size={n_params/2**20:.2f}M params")
+        logger.info(
+            f"Training new model from scratch - Total size={n_params/2**20:.2f}M params"
+        )
 
     # model_vocab_size = model.get_output_embeddings().weight.size(0)
     # if not (
@@ -563,10 +667,10 @@ def main():
         model = PeftModel.from_pretrained(model, training_args.peft_path)
     else:
         logger.info("Init new peft model")
-        target_modules = training_args.trainable.split(',')
+        target_modules = training_args.trainable.split(",")
         modules_to_save = training_args.modules_to_save
         if modules_to_save is not None:
-            modules_to_save = modules_to_save.split(',')
+            modules_to_save = modules_to_save.split(",")
         lora_rank = training_args.lora_rank
         lora_dropout = training_args.lora_dropout
         lora_alpha = training_args.lora_alpha
@@ -576,9 +680,11 @@ def main():
             task_type=TaskType.CAUSAL_LM,
             target_modules=target_modules,
             inference_mode=False,
-            r=lora_rank, lora_alpha=lora_alpha,
+            r=lora_rank,
+            lora_alpha=lora_alpha,
             lora_dropout=lora_dropout,
-            modules_to_save=modules_to_save)
+            modules_to_save=modules_to_save,
+        )
         model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
     old_state_dict = model.state_dict
@@ -594,7 +700,9 @@ def main():
         eval_dataset=eval_dataset if training_args.do_eval else None,
         tokenizer=tokenizer,
         data_collator=fault_tolerance_data_collator,
-        compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
+        compute_metrics=compute_metrics
+        if training_args.do_eval and not is_torch_tpu_available()
+        else None,
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()
         else None,
@@ -612,7 +720,9 @@ def main():
         metrics = train_result.metrics
 
         max_train_samples = (
-            data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)
+            data_args.max_train_samples
+            if data_args.max_train_samples is not None
+            else len(train_dataset)
         )
         metrics["train_samples"] = min(max_train_samples, len(train_dataset))
 
@@ -626,7 +736,11 @@ def main():
 
         metrics = trainer.evaluate()
 
-        max_eval_samples = data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
+        max_eval_samples = (
+            data_args.max_eval_samples
+            if data_args.max_eval_samples is not None
+            else len(eval_dataset)
+        )
         metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))
         try:
             perplexity = math.exp(metrics["eval_loss"])
